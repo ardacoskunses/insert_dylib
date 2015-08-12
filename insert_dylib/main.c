@@ -315,17 +315,12 @@ bool insert_dylib(FILE *f, size_t header_offset, const char *dylib_path, off_t *
 
 	size_t dylib_path_len = strlen(dylib_path);
 	size_t dylib_path_size = (dylib_path_len & ~(path_padding - 1)) + path_padding;
-	uint32_t cmdsize = (uint32_t)(sizeof(struct dylib_command) + dylib_path_size);
+	uint32_t cmdsize = (uint32_t)(sizeof(struct rpath_command) + dylib_path_size);
 
-	struct dylib_command dylib_command = {
-		.cmd = SWAP32(weak_flag? LC_LOAD_WEAK_DYLIB: LC_LOAD_DYLIB, mh.magic),
+	struct rpath_command rpath_command = {
+		.cmd = SWAP32(LC_RPATH, mh.magic),
 		.cmdsize = SWAP32(cmdsize, mh.magic),
-		.dylib = {
-			.name = SWAP32(sizeof(struct dylib_command), mh.magic),
-			.timestamp = 0,
-			.current_version = 0,
-			.compatibility_version = 0
-		}
+		.path = SWAP32(sizeof(struct rpath_command), mh.magic)
 	};
 
 	uint32_t sizeofcmds = SWAP32(mh.sizeofcmds, mh.magic);
@@ -354,7 +349,7 @@ bool insert_dylib(FILE *f, size_t header_offset, const char *dylib_path, off_t *
 	char *dylib_path_padded = calloc(dylib_path_size, 1);
 	memcpy(dylib_path_padded, dylib_path, dylib_path_len);
 
-	fwrite(&dylib_command, sizeof(dylib_command), 1, f);
+	fwrite(&rpath_command, sizeof(rpath_command), 1, f);
 	fwrite(dylib_path_padded, dylib_path_size, 1, f);
 
 	free(dylib_path_padded);
